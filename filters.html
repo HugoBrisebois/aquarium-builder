@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquarium Product Finder</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for the message box */
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .message-box.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Styles for the budget modal (repurposed from price modal) */
+        .budget-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .budget-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .budget-modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px; /* Wider for list of items */
+            width: 90%;
+            max-height: 80vh; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling if content overflows */
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .budget-modal-overlay.show .budget-modal-content {
+            transform: translateY(0);
+        }
+        .budget-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .budget-item:last-child {
+            border-bottom: none;
+        }
+        .budget-item-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .budget-item-price {
+            font-weight: 600;
+            color: #28a745;
+        }
+        .budget-total {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #eee;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<header>
+    <h1>
+        Find your product here
+    </h1>
+</header>
+<nav>
+    <a href="index.html">Home</a>
+    <a href="filters.html">Shop</a>
+    <a href="wishlist.html">Your Aquarium</a>
+</nav>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-green-100 p-4">
+    
+    <div id="messageBox" class="message-box"></div>
+    
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-8">
+        <!-- Navigation Button -->
+        <div class="flex justify-end mb-4">
+            <button
+                id="viewBudgetButton"
+                class="px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition duration-200 ease-in-out"
+            >
+                View Budget
+            </button>
+        </div>
+
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6">
+            Aquarium Product Finder (Simulated)
+        </h1>
+
+        <!-- Search Input -->
+        <div class="mb-6">
+            <input
+                type="text"
+                id="searchTerm"
+                placeholder="Search for products (e.g., 'heater', 'tank', 'filter')..."
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200 ease-in-out text-gray-700"
+            />
+        </div>
+
+        <!-- Water Type Filter -->
+        <div class="mb-8 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6">
+            <span class="text-lg font-semibold text-gray-700 mr-2">Filter by Water Type:</span>
+            <div class="flex space-x-4">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input
+                        type="radio"
+                        name="waterType"
+                        value="all"
+                        checked
+                        class="form-radio h-5 w-5 text-gray-600 rounded-full border-gray-300 focus:ring-blue-500"
+                    />
+                    <span class="ml-2 text-gray-800 font-medium">All</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input
+                        type="radio"
+                        name="waterType"
+                        value="saltwater"
+                        class="form-radio h-5 w-5 text-blue-600 rounded-full border-blue-300 focus:ring-blue-500"
+                    />
+                    <span class="ml-2 text-gray-800 font-medium">Saltwater</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input
+                        type="radio"
+                        name="waterType"
+                        value="freshwater"
+                        class="form-radio h-5 w-5 text-green-600 rounded-full border-green-300 focus:ring-green-500"
+                    />
+                    <span class="ml-2 text-gray-800 font-medium">Freshwater</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Add New Product Form -->
+        <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Add New Product</h2>
+            <form id="addProductForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="newProductName" class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input
+                        type="text"
+                        id="newProductName"
+                        name="name"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="newProductDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input
+                        type="text"
+                        id="newProductDescription"
+                        name="description"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="newProductPrice" class="block text-sm font-medium text-gray-700">Price</label>
+                    <input
+                        type="number"
+                        id="newProductPrice"
+                        name="price"
+                        step="0.01"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="newProductSource" class="block text-sm font-medium text-gray-700">Source (e.g., "Facebook Marketplace")</label>
+                    <input
+                        type="text"
+                        id="newProductSource"
+                        name="source"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="newProductType" class="block text-sm font-medium text-gray-700">Water Type</label>
+                    <select
+                        id="newProductType"
+                        name="type"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="freshwater">Freshwater</option>
+                        <option value="saltwater">Saltwater</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="newProductImageUrl" class="block text-sm font-medium text-gray-700">Image URL (Optional)</label>
+                    <input
+                        type="text"
+                        id="newProductImageUrl"
+                        name="imageUrl"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
+                <div class="md:col-span-2 flex justify-center mt-4">
+                    <button
+                        type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out"
+                    >
+                        Add Product
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Product Display Area -->
+        <div id="productDisplay" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Products will be rendered here by JavaScript -->
+        </div>
+
+        <p class="text-center text-sm text-gray-500 mt-8">
+            This is a simulated system. Product data is mock and not pulled from live external websites.
+            You can add and delete products to see the filtering in action.
+        </p>
+    </div>
+
+    <!-- Budget Modal Structure (repurposed from price modal) -->
+    <div id="budgetModalOverlay" class="budget-modal-overlay">
+        <div class="budget-modal-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Budgeted Items</h2>
+            <div id="budgetItemsList" class="flex-grow text-left mb-4">
+                <!-- Budgeted items will be listed here -->
+            </div>
+            <div id="budgetTotal" class="budget-total">
+                <!-- Total budget will be displayed here -->
+            </div>
+            <button id="closeBudgetModal" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out mt-4">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Custom message box function
+        function showMessageBox(message) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000); // Message disappears after 3 seconds
+        }
+
+        // Mock product data - In a real application, this would come from an API or database
+        let allProducts = [
+            {
+                id: '1',
+                name: 'Nano Reef Tank Kit',
+                description: 'Compact all-in-one kit for small saltwater setups. Includes pump, filter, and LED light.',
+                type: 'saltwater',
+                category: 'Aquarium Kits',
+                price: 299.99,
+                source: 'Local Aquarium Shop',
+                imageUrl: 'https://placehold.co/150x150/007bff/ffffff?text=Saltwater+Kit'
+            },
+            {
+                id: '2',
+                name: '20 Gallon Long Freshwater Tank',
+                description: 'Standard 20-gallon tank, perfect for community freshwater fish.',
+                type: 'freshwater',
+                category: 'Aquariums',
+                price: 79.99,
+                source: 'Facebook Marketplace',
+                imageUrl: 'https://placehold.co/150x150/28a745/ffffff?text=Freshwater+Tank'
+            },
+            {
+                id: '3',
+                name: 'RO/DI Water Filter System',
+                description: 'Essential for maintaining pure water for saltwater aquariums.',
+                type: 'saltwater',
+                category: 'Filtration',
+                price: 189.00,
+                source: 'Online Retailer',
+                imageUrl: 'https://placehold.co/150x150/007bff/ffffff?text=RO/DI+Filter'
+            },
+            {
+                id: '4',
+                name: 'Heater for Freshwater Tanks',
+                description: 'Adjustable heater for tanks up to 50 gallons. Suitable for freshwater use.',
+                type: 'freshwater',
+                category: 'Equipment',
+                price: 25.50,
+                source: 'Local Aquarium Shop',
+                imageUrl: 'https://placehold.co/150x150/28a745/ffffff?text=Heater'
+            },
+            {
+                id: '5',
+                name: 'Live Rock (Cured)',
+                description: 'Premium cured live rock for biological filtration and aquascaping in saltwater tanks.',
+                type: 'saltwater',
+                category: 'Decor & Substrate',
+                price: 8.99, // per pound
+                source: 'Specialty Store',
+                imageUrl: 'https://placehold.co/150x150/007bff/ffffff?text=Live+Rock'
+            },
+            {
+                id: '6',
+                name: 'Driftwood Aquarium Decor',
+                description: 'Natural driftwood pieces for a beautiful freshwater aquascape. Helps lower pH.',
+                type: 'freshwater',
+                category: 'Decor & Substrate',
+                price: 15.00,
+                source: 'Facebook Marketplace',
+                imageUrl: 'https://placehold.co/150x150/28a745/ffffff?text=Driftwood'
+            },
+            {
+                id: '7',
+                name: 'Protein Skimmer',
+                description: 'Efficient protein skimmer for removing organic waste from saltwater aquariums.',
+                type: 'saltwater',
+                category: 'Filtration',
+                price: 120.00,
+                source: 'Online Retailer',
+                imageUrl: 'https://placehold.co/150x150/007bff/ffffff?text=Protein+Skimmer'
+            },
+            {
+                id: '8',
+                name: 'LED Planted Tank Light',
+                description: 'Full spectrum LED light designed for optimal plant growth in freshwater aquariums.',
+                type: 'freshwater',
+                category: 'Lighting',
+                price: 65.00,
+                source: 'Local Aquarium Shop',
+                imageUrl: 'https://placehold.co/150x150/28a745/ffffff?text=LED+Light'
+            },
+            {
+                id: '9',
+                name: 'Marine Salt Mix (200 Gallon)',
+                description: 'High-quality synthetic sea salt mix for creating ideal saltwater conditions.',
+                type: 'saltwater',
+                category: 'Chemicals & Additives',
+                price: 45.00,
+                source: 'Online Retailer',
+                imageUrl: 'https://placehold.co/150x150/007bff/ffffff?text=Salt+Mix'
+            },
+            {
+                id: '10',
+                name: 'Aquarium Gravel Cleaner',
+                description: 'Manual gravel vacuum for easy cleaning of freshwater tank substrates.',
+                type: 'freshwater',
+                category: 'Maintenance',
+                price: 12.99,
+                source: 'Local Aquarium Shop',
+                imageUrl: 'https://placehold.co/150x150/28a745/ffffff?text=Gravel+Cleaner'
+            },
+        ];
+
+        // Budgeted products array, loaded from localStorage
+        let budgetedProducts = JSON.parse(localStorage.getItem('aquariumBudget')) || [];
+
+        // Get modal elements for the budget view
+        const budgetModalOverlay = document.getElementById('budgetModalOverlay');
+        const budgetItemsList = document.getElementById('budgetItemsList');
+        const budgetTotal = document.getElementById('budgetTotal');
+        const closeBudgetModalButton = document.getElementById('closeBudgetModal');
+        const viewBudgetButton = document.getElementById('viewBudgetButton');
+
+
+        // Function to render products
+        function renderProducts() {
+            const productDisplay = document.getElementById('productDisplay');
+            productDisplay.innerHTML = ''; // Clear previous products
+
+            const searchTerm = document.getElementById('searchTerm').value.toLowerCase();
+            const waterTypeFilter = document.querySelector('input[name="waterType"]:checked').value;
+
+            const filteredProducts = allProducts.filter(product => {
+                // Filter by search term (case-insensitive)
+                const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
+                                      product.description.toLowerCase().includes(searchTerm);
+
+                // Filter by water type
+                const matchesWaterType = waterTypeFilter === 'all' ? true : product.type === waterTypeFilter;
+
+                return matchesSearch && matchesWaterType;
+            });
+
+            if (filteredProducts.length === 0) {
+                productDisplay.innerHTML = `
+                    <p class="col-span-full text-center text-gray-600 text-lg py-10">
+                        No products found matching your criteria.
+                    </p>
+                `;
+                return;
+            }
+
+            filteredProducts.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = `
+                    bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden
+                    transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col
+                `;
+                productCard.innerHTML = `
+                    <img
+                        src="${product.imageUrl}"
+                        alt="${product.name}"
+                        class="w-full h-40 object-cover"
+                        onerror="this.onerror=null;this.src='https://placehold.co/150x150/cccccc/333333?text=No+Image';"
+                    />
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">${product.name}</h3>
+                            <p class="text-sm text-gray-600 mb-2">${product.description}</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-bold ${
+                                    product.type === 'saltwater' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                }">
+                                    ${product.type === 'saltwater' ? 'Saltwater' : 'Freshwater'}
+                                </span>
+                                <span class="text-lg font-bold text-gray-900">$${product.price.toFixed(2)}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">Source: ${product.source}</p>
+                            <div class="flex space-x-2 mt-2">
+                                <button
+                                    data-id="${product.id}"
+                                    class="add-to-budget-button flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-200 ease-in-out text-sm font-medium"
+                                >
+                                    Budget Updated
+                                </button>
+                                <button
+                                    data-id="${product.id}"
+                                    class="delete-button flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 ease-in-out text-sm font-medium"
+                                >
+                                    Delete Product
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productDisplay.appendChild(productCard);
+            });
+
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const productId = event.target.dataset.id;
+                    deleteProduct(productId);
+                });
+            });
+
+            // Add event listeners for "Budget Updated" buttons
+            document.querySelectorAll('.add-to-budget-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const productId = event.target.dataset.id;
+                    const product = allProducts.find(p => p.id === productId);
+                    if (product) {
+                        addToBudget(product);
+                    }
+                });
+            });
+        }
+
+        // Function to add a product to the budget
+        function addToBudget(product) {
+            // Check if product is already in budget to prevent duplicates
+            if (!budgetedProducts.some(item => item.id === product.id)) {
+                budgetedProducts.push(product);
+                localStorage.setItem('aquariumBudget', JSON.stringify(budgetedProducts));
+                showMessageBox(`"${product.name}" added to your budget!`);
+            } else {
+                showMessageBox(`"${product.name}" is already in your budget.`);
+            }
+        }
+
+        // Function to show the budget modal
+        function showBudgetModal() {
+            budgetItemsList.innerHTML = ''; // Clear previous items
+
+            if (budgetedProducts.length === 0) {
+                budgetItemsList.innerHTML = '<p class="text-gray-600 text-center">Your budget is empty.</p>';
+                budgetTotal.textContent = 'Total: $0.00';
+            } else {
+                let total = 0;
+                budgetedProducts.forEach(product => {
+                    const budgetItem = document.createElement('div');
+                    budgetItem.className = 'budget-item';
+                    budgetItem.innerHTML = `
+                        <span class="budget-item-name">${product.name}</span>
+                        <span class="budget-item-price">$${product.price.toFixed(2)}</span>
+                    `;
+                    budgetItemsList.appendChild(budgetItem);
+                    total += product.price;
+                });
+                budgetTotal.textContent = `Total: $${total.toFixed(2)}`;
+            }
+            budgetModalOverlay.classList.add('show');
+        }
+
+        // Function to hide the budget modal
+        function hideBudgetModal() {
+            budgetModalOverlay.classList.remove('show');
+        }
+
+        // Event listener for closing the budget modal
+        closeBudgetModalButton.addEventListener('click', hideBudgetModal);
+        budgetModalOverlay.addEventListener('click', (event) => {
+            if (event.target === budgetModalOverlay) { // Close only if clicking the overlay, not the content
+                hideBudgetModal();
+            }
+        });
+
+        // Function to add a new product (from the form)
+        function addProduct(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const name = document.getElementById('newProductName').value;
+            const description = document.getElementById('newProductDescription').value;
+            const price = parseFloat(document.getElementById('newProductPrice').value);
+            const source = document.getElementById('newProductSource').value;
+            const type = document.getElementById('newProductType').value;
+            const imageUrl = document.getElementById('newProductImageUrl').value;
+
+            if (!name || !description || isNaN(price) || !source) {
+                showMessageBox('Please fill in all required fields for the new product.');
+                return;
+            }
+
+            const newId = String(allProducts.length > 0 ? Math.max(...allProducts.map(p => parseInt(p.id))) + 1 : 1);
+
+            const newProduct = {
+                id: newId,
+                name,
+                description,
+                type,
+                price,
+                source,
+                imageUrl: imageUrl || `https://placehold.co/150x150/cccccc/333333?text=New+Product`
+            };
+
+            allProducts.push(newProduct);
+            renderProducts(); // Re-render products to show the new one
+            document.getElementById('addProductForm').reset(); // Clear the form
+            showMessageBox('Product added successfully!');
+        }
+
+        // Function to delete a product
+        function deleteProduct(id) {
+            allProducts = allProducts.filter(product => product.id !== id);
+            // Also remove from budgeted products if it was there
+            budgetedProducts = budgetedProducts.filter(product => product.id !== id);
+            localStorage.setItem('aquariumBudget', JSON.stringify(budgetedProducts));
+            renderProducts(); // Re-render products after deletion
+            showMessageBox('Product deleted successfully!');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts(); // Initial render of products
+
+            document.getElementById('searchTerm').addEventListener('input', renderProducts);
+
+            document.querySelectorAll('input[name="waterType"]').forEach(radio => {
+                radio.addEventListener('change', renderProducts);
+            });
+
+            document.getElementById('addProductForm').addEventListener('submit', addProduct);
+
+            // Event listener for the new "View Budget" navigation button
+            viewBudgetButton.addEventListener('click', showBudgetModal);
+        });
+    </script>
+</body>
+</html>
